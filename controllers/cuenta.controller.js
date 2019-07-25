@@ -87,13 +87,11 @@ const crearCategoria = (req,res) =>{
                         ]
                     } }} )
                     .then((data)=> {
-
                         const men = (req.params.saldo)*(-1);
                         _cuenta.updateOne({userId:req.params.userId,"categorias.nombre":"Sin Asignar"} ,{$inc:{"categorias.$.saldo":men}})
                             .then((data)=> {
-                                        res.status(200);
-                                        res.json({msg:"Se ha generado la categoria", data: data});
-                                    
+                                res.status(200);
+                                res.json({msg:"Se ha generado la categoria", data: data});
                             })
                             .catch((err)=> {
                                 res.status(400);
@@ -115,7 +113,7 @@ const crearCategoria = (req,res) =>{
         res.json({msg:`La categoria ${req.params.nom} ya existe.`});
     }
 });   
-}
+};
 
 //eliminar categoria creada
 const eliminarCategoria = (req,res) =>{
@@ -241,116 +239,148 @@ const agregarTotal = (req,res) =>{
 
 //restar cantidad a categoria
 const restarCategoria = (req,res) =>{
-
     categoriaExistente(req.params.nom,req.params.userId).then(existe=>{
-        if(existe){
-    const men = (req.params.cant)*(-1);
-    _cuenta.findOne({userId:req.params.userId,"categorias.nombre":req.params.nom},{"categorias.$":1}).then((data)=>{
-        if((data.categorias[0].saldo+men)<0){
-            res.status(400);
-            res.json({msg:"La categoria no puede quedar con saldo negativo"});
-        }
-        else{
-            _cuenta.updateOne({userId:req.params.userId,"categorias.nombre":req.params.nom} ,{$inc:{"categorias.$.saldo":men}})
-            .then((data)=> {
-            _cuenta.update({userId:req.params.userId,"categorias.nombre":req.params.nom}, { $push : 
-                {"categorias.$.movimientos": 
-                        {
-                            cantidad:men,
-                            fecha:Date.now(),
-                            desc:req.body.desc
-                        }
+        if(existe) {
+            if (req.params.cant >= 0) {
+                const men = (req.params.cant) * (-1);
+                _cuenta.findOne({
+                    userId: req.params.userId,
+                    "categorias.nombre": req.params.nom
+                }, {"categorias.$": 1}).then((data) => {
+                    if ((data.categorias[0].saldo + men) < 0) {
+                        res.status(400);
+                        res.json({msg: "La categoria no puede quedar con saldo negativo"});
                     }
-                    } )
-                    .then((data)=> {
-
-/* 
-                const men = (req.params.cant)*(-1);
-                _cuenta.updateOne({userId:req.params.userId,"categorias.nombre":"Sin Asignar"} ,{$inc:{"categorias.$.saldo":men}})
-                    .then((data)=> {
-                        res.status(200);
-                        res.json({msg:"Se ha actualizado el saldo total",data:data });
-                            
-                    })
-                    .catch((err)=> {
-                        res.status(400);
-                        res.json({msg:"Error!!!!"});
-                    })   */
-                 
-                        //
-                        _cuenta.updateOne({userId:req.params.userId}, {$inc:{total:men} })
-                        .then((data)=> {
-                            res.status(200);
-                            res.json({msg:`Se ha actualizado el saldo de ${req.params.nom}`,data:data });
-                        }).catch((err)=> {
+                    else {
+                        _cuenta.updateOne({
+                            userId: req.params.userId,
+                            "categorias.nombre": req.params.nom
+                        }, {$inc: {"categorias.$.saldo": men}})
+                            .then((data) => {
+                                _cuenta.update({userId: req.params.userId, "categorias.nombre": req.params.nom}, {
+                                    $push:
+                                        {
+                                            "categorias.$.movimientos":
+                                                {
+                                                    cantidad: men,
+                                                    fecha: Date.now(),
+                                                    desc: req.body.desc
+                                                }
+                                        }
+                                }).then((data) => {
+                                    /*
+                                                    const men = (req.params.cant)*(-1);
+                                                    _cuenta.updateOne({userId:req.params.userId,"categorias.nombre":"Sin Asignar"} ,{$inc:{"categorias.$.saldo":men}})
+                                                        .then((data)=> {
+                                                            res.status(200);
+                                                            res.json({msg:"Se ha actualizado el saldo total",data:data });
+                                                        })
+                                                        .catch((err)=> {
+                                                            res.status(400);
+                                                            res.json({msg:"Error!!!!"});
+                                                        })   */
+                                    _cuenta.updateOne({userId: req.params.userId}, {$inc: {total: men}})
+                                        .then((data) => {
+                                            res.status(200);
+                                            res.json({
+                                                msg: `Se ha actualizado el saldo de ${req.params.nom}`,
+                                                data: data
+                                            });
+                                        }).catch((err) => {
+                                        res.status(400);
+                                        res.json({msg: "Error!!!!"});
+                                    })
+                                }).catch((err) => {
+                                    res.status(400);
+                                    res.json({msg: "Error!!!!"});
+                                });
+                            }).catch((err) => {
                             res.status(400);
-                            res.json({msg:"Error!!!!"});
-                        }) 
-                    }).catch((err)=> {
-                        res.status(400);
-                        res.json({msg:"Error!!!!"});
-                    }) 
-                
-        })
-        .catch((err)=> {
+                            res.json({msg: "Error!!!!"});
+                        })
+                    }
+                });
+            } else {
+                res.status(400);
+                res.json({msg: `No se permiten numeros negativos`});
+            }
+        }
+        else {
             res.status(400);
-            res.json({msg:"Error!!!!"});
-        })  
-    }
-    });
-    }else{
-        res.status(400);
-        res.json({msg:`La categoria ${req.params.nom} no existe.`});
-    }
+            res.json({msg: `La categoria ${req.params.nom} no existe.`});
+        }
 })
 }
 
 //agregar cantidad a categoria
 const agregarCategoria = (req,res) =>{
-    
-    categoriaExistente(req.params.nom,req.params.userId).then(existe=>{
-        if(existe){
-            _cuenta.updateOne({userId:req.params.userId,"categorias.nombre":req.params.nom} ,{$inc:{"categorias.$.saldo":req.params.cant}})
-            .then((data)=> {
-            _cuenta.updateOne({userId:req.params.userId,"categorias.nombre":req.params.nom}, { $push : 
-            {"categorias.$.movimientos": 
-                    {
-                        cantidad:req.params.cant,
-                        fecha:Date.now(),
-                        desc:req.body.desc
+    if (req.params.cant>=0) {
+        categoriaExistente(req.params.nom, req.params.userId).then(existe => {
+            if (existe) {
+                validarSaldos(req.params.userId).then(total => {
+                    if (total >= req.params.cant) {
+                        _cuenta.updateOne({
+                            userId: req.params.userId,
+                            "categorias.nombre": req.params.nom
+                        }, {$inc: {"categorias.$.saldo": req.params.cant}})
+                            .then((data) => {
+                                _cuenta.updateOne({userId: req.params.userId, "categorias.nombre": req.params.nom}, {
+                                    $push:
+                                        {
+                                            "categorias.$.movimientos":
+                                                {
+                                                    cantidad: req.params.cant,
+                                                    fecha: Date.now(),
+                                                    desc: req.body.desc
+                                                }
+                                        }
+                                }).then((data) => {
+                                    const men = (req.params.cant) * (-1);
+                                    _cuenta.updateOne({
+                                        userId: req.params.userId,
+                                        "categorias.nombre": "Sin Asignar"
+                                    }, {$inc: {"categorias.$.saldo": men}})
+                                        .then((data) => {
+                                            res.status(200);
+                                            res.json({
+                                                msg: `Se ha actualizado el saldo de${req.params.nom}`,
+                                                data: data
+                                            });
+
+                                        })
+                                        .catch((err) => {
+                                            res.status(400);
+                                            res.json({msg: "Error!!!!"});
+                                        })
+                                }).catch((err) => {
+                                    res.status(400);
+                                    res.json({msg: "Error!!!!"});
+                                })
+                            })
+                            .catch((err) => {
+                                res.status(400);
+                                res.json({msg: "Error!!!!"});
+                            })
                     }
-                }
-                })
-                
-            .then((data)=> {
-                
-                const men = (req.params.cant)*(-1);
-                if(men<0){res.status(400); res.json({msg:"Error no hay saldo para agregar a la cuenta!!!!"});}  //
-                _cuenta.updateOne({userId:req.params.userId,"categorias.nombre":"Sin Asignar"} ,{$inc:{"categorias.$.saldo":men}})
-                    .then((data)=> {
-                        res.status(200);
-                        res.json({msg:`Se ha actualizado el saldo de ${req.params.nom}` ,data:data });
-                            
-                    })
-                    .catch((err)=> {
+                    else {
                         res.status(400);
-                        res.json({msg:"Error!!!"});
-                    })  
-                 
-            }).catch((err)=> {
+                        res.json({msg: "No hay suficientes recursos para asignar"});
+                    }
+                }).catch((err) => {
+                    res.status(400);
+                    res.json({msg: "Error!!!!"});
+                })
+            }
+            else {
                 res.status(400);
-                res.json({msg:"Error!!"});
-            }) 
+                res.json({msg: `La categoria ${req.params.nom} no existe.`});
+            }
         })
-        .catch((err)=> {
-            res.status(400);
-            res.json({msg:"Error!"});
-        })}else{
-            res.status(400);
-            res.json({msg:`La categoria ${req.params.nom} no existe.`});
-        }
-    })
-}
+    }else{
+        res.status(400);
+        res.json({msg: "No se permiten cantidades negativas"});
+    }
+};
 
 
 //consultar movimientos//
@@ -367,7 +397,7 @@ const consultarMov = (req,res) =>{
     res.json({msg:"Error!!!!"});
 })  
     
-}
+};
 
 //consultar los movimientos de una categoria
 const consultarMovCat = (req,res) =>{
